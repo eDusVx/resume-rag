@@ -9,7 +9,7 @@ export class DocumentChunk {
     public embedding?: number[],
     public score?: number,
     id?: string,
-    private resumeId?: string
+    private resumeId?: string,
   ) {
     this.id = id ?? uuidv4();
   }

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid'; 
+import { v4 as uuidv4 } from 'uuid';
 import type { VectorStoreRepository } from 'src/modules/resume/domain/repository/VectorStore.repository';
 import type { GeminiService } from '../services/Gemini.service';
 import type { PdfParserService } from '../services/PdfParser.service';
@@ -22,7 +22,7 @@ export class IngestResumeUseCase {
 
     const chunks = await this.geminiService.generateEmbeddings(rawTexts);
 
-    chunks.forEach(chunk => chunk.setResumeId(resumeId));
+    chunks.forEach((chunk) => chunk.setResumeId(resumeId));
 
     await this.vectorStoreRepository.save(chunks, fileName);
 

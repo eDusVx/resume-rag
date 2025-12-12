@@ -12,32 +12,39 @@ export class ChatResumeUseCase {
   ) {}
 
   async execute(resumeId: string, question: string) {
-    const queryVector = await this.geminiService.generateQueryEmbedding(question);
+    const queryVector =
+      await this.geminiService.generateQueryEmbedding(question);
 
     const similarDocs = await this.vectorStoreRepository.search(
-      queryVector, 
+      queryVector,
       4,
-      resumeId 
+      resumeId,
     );
 
     if (similarDocs.length === 0) {
-      return { 
-        answer: "Não encontrei informações sobre este currículo. Verifique se o ID está correto ou se o arquivo foi processado.",
-        sources: []
+      return {
+        answer:
+          'Não encontrei informações sobre este currículo. Verifique se o ID está correto ou se o arquivo foi processado.',
+        sources: [],
       };
     }
 
-    const contextText = similarDocs.map((doc) => doc.content).join('\n\n---\n\n');
+    const contextText = similarDocs
+      .map((doc) => doc.content)
+      .join('\n\n---\n\n');
 
-    const answer = await this.geminiService.chatWithResume(question, contextText);
+    const answer = await this.geminiService.chatWithResume(
+      question,
+      contextText,
+    );
 
     return {
       question,
       answer,
-      sources: similarDocs.map(d => ({
+      sources: similarDocs.map((d) => ({
         content: d.content.substring(0, 100) + '...',
-        score: d.score?.toFixed(4)
-      }))
+        score: d.score?.toFixed(4),
+      })),
     };
   }
 }

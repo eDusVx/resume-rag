@@ -1,6 +1,13 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import {
+  ChatGoogleGenerativeAI,
+  GoogleGenerativeAIEmbeddings,
+} from '@langchain/google-genai';
 import { TaskType } from '@google/generative-ai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
@@ -17,38 +24,65 @@ export class GeminiServiceImpl implements GeminiService {
   private readonly embeddingsModel: GoogleGenerativeAIEmbeddings;
   private readonly RESUME_SCHEMA = z.object({
     candidato: z.object({
-      nome: z.string().describe("Nome completo do candidato. Se não achar, use 'Não identificado'"),
-      email: z.string().nullable().describe("Email do candidato ou null"),
-      telefone: z.string().nullable().describe("Telefone com DDD ou null"),
+      nome: z
+        .string()
+        .describe(
+          "Nome completo do candidato. Se não achar, use 'Não identificado'",
+        ),
+      email: z.string().nullable().describe('Email do candidato ou null'),
+      telefone: z.string().nullable().describe('Telefone com DDD ou null'),
       links: z.object({
         linkedin: z.string().nullable(),
         github: z.string().nullable(),
         portfolio: z.string().nullable(),
       }),
-      cidade_estado: z.string().nullable().describe("Ex: 'São Paulo, SP' ou null"),
+      cidade_estado: z
+        .string()
+        .nullable()
+        .describe("Ex: 'São Paulo, SP' ou null"),
     }),
     profissional: z.object({
-      resumo: z.string().describe("Um parágrafo único e denso resumindo o perfil."),
-      tempo_experiencia_estimado: z.string().describe("Ex: '5 anos', calculado baseando-se nas datas."),
-      cargo_atual_ou_ultimo: z.string().describe("O cargo mais recente encontrado."),
-      empresa_atual_ou_ultima: z.string().describe("A empresa mais recente."),
+      resumo: z
+        .string()
+        .describe('Um parágrafo único e denso resumindo o perfil.'),
+      tempo_experiencia_estimado: z
+        .string()
+        .describe("Ex: '5 anos', calculado baseando-se nas datas."),
+      cargo_atual_ou_ultimo: z
+        .string()
+        .describe('O cargo mais recente encontrado.'),
+      empresa_atual_ou_ultima: z.string().describe('A empresa mais recente.'),
     }),
     skills: z.object({
-      linguagens: z.array(z.string()).describe("Apenas linguagens de programação (Java, JS, Go...)"),
-      frameworks: z.array(z.string()).describe("Frameworks e bibliotecas (Spring, React, Nest...)"),
-      bancos_de_dados: z.array(z.string()).describe("Postgres, Mongo, Redis..."),
-      cloud_devops: z.array(z.string()).describe("AWS, Docker, K8s, CI/CD..."),
-      arquitetura_e_conceitos: z.array(z.string()).describe("DDD, SOLID, Clean Arch..."),
+      linguagens: z
+        .array(z.string())
+        .describe('Apenas linguagens de programação (Java, JS, Go...)'),
+      frameworks: z
+        .array(z.string())
+        .describe('Frameworks e bibliotecas (Spring, React, Nest...)'),
+      bancos_de_dados: z
+        .array(z.string())
+        .describe('Postgres, Mongo, Redis...'),
+      cloud_devops: z.array(z.string()).describe('AWS, Docker, K8s, CI/CD...'),
+      arquitetura_e_conceitos: z
+        .array(z.string())
+        .describe('DDD, SOLID, Clean Arch...'),
     }),
-    formacao_academica: z.array(z.object({
-      curso: z.string(),
-      instituicao: z.string(),
-      ano_conclusao: z.string().nullable(),
-    })).describe("Lista de graduações ou cursos relevantes"),
-    idiomas: z.array(z.object({
-      idioma: z.string(),
-      nivel: z.string(),
-    })),
+    formacao_academica: z
+      .array(
+        z.object({
+          curso: z.string(),
+          instituicao: z.string(),
+          ano_conclusao: z.string().nullable(),
+        }),
+      )
+      .describe('Lista de graduações ou cursos relevantes'),
+    idiomas: z.array(
+      z.object({
+        idioma: z.string(),
+        nivel: z.string(),
+      }),
+    ),
   });
 
   constructor(private readonly configService: ConfigService) {
@@ -69,9 +103,11 @@ export class GeminiServiceImpl implements GeminiService {
   }
 
   async generateEmbeddings(texts: string[]): Promise<DocumentChunk[]> {
-    this.logger.debug(`Gerando embeddings para ${texts.length} fragmentos de texto...`);
-    
-    const BATCH_SIZE = 5; 
+    this.logger.debug(
+      `Gerando embeddings para ${texts.length} fragmentos de texto...`,
+    );
+
+    const BATCH_SIZE = 5;
     const results: DocumentChunk[] = [];
 
     try {
@@ -84,21 +120,22 @@ export class GeminiServiceImpl implements GeminiService {
 
         const batchResults = await Promise.all(batchPromises);
         results.push(...batchResults);
-        
+
         if (i + BATCH_SIZE < texts.length) {
-            await new Promise(r => setTimeout(r, 200)); 
+          await new Promise((r) => setTimeout(r, 200));
         }
       }
 
       this.logger.debug('Embeddings gerados com sucesso.');
       return results;
-
     } catch (error) {
       this.logger.error('Erro ao gerar embeddings', error);
-      throw new InternalServerErrorException('Falha ao processar vetores do currículo.');
+      throw new InternalServerErrorException(
+        'Falha ao processar vetores do currículo.',
+      );
     }
   }
-  
+
   async generateQueryEmbedding(text: string): Promise<number[]> {
     try {
       return await this.embeddingsModel.embedQuery(text);
@@ -110,7 +147,7 @@ export class GeminiServiceImpl implements GeminiService {
 
   async analyzeResumeStructure(context: string): Promise<ResumeAnalysisResult> {
     this.logger.debug('Iniciando análise estruturada do currículo...');
-    
+
     try {
       const parser = StructuredOutputParser.fromZodSchema(this.RESUME_SCHEMA);
 
@@ -128,9 +165,9 @@ export class GeminiServiceImpl implements GeminiService {
           3. Normalização: Padronize termos técnicos (ex: "React.js", "ReactJS", "React" -> "ReactJS").
           4. Síntese: No resumo profissional, crie um texto coeso em terceira pessoa.
 
-          {format_instructions}`
+          {format_instructions}`,
         ],
-        ['user', 'Conteúdo do Currículo para análise:\n"""{context}"""']
+        ['user', 'Conteúdo do Currículo para análise:\n"""{context}"""'],
       ]);
 
       const chain = prompt.pipe(this.chatModel).pipe(parser);
@@ -141,11 +178,15 @@ export class GeminiServiceImpl implements GeminiService {
       });
 
       this.logger.debug('Análise estruturada concluída com sucesso.');
-      return result as unknown as ResumeAnalysisResult; 
-
+      return result as unknown as ResumeAnalysisResult;
     } catch (error) {
-      this.logger.error('Erro durante a análise estruturada do currículo', error);
-      throw new InternalServerErrorException('Falha ao analisar o currículo com IA.');
+      this.logger.error(
+        'Erro durante a análise estruturada do currículo',
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Falha ao analisar o currículo com IA.',
+      );
     }
   }
 
@@ -165,7 +206,7 @@ export class GeminiServiceImpl implements GeminiService {
         1. Responda à pergunta do usuário APENAS com base no contexto acima.
         2. Se a resposta não estiver no contexto, diga educadamente que o currículo não menciona essa informação.
         3. Seja direto e profissional.
-        4. Cite fatos. Se perguntarem "Ele sabe React?", responda "Sim, menciona React em tal projeto" ou "Não menciona explicitamente".`
+        4. Cite fatos. Se perguntarem "Ele sabe React?", responda "Sim, menciona React em tal projeto" ou "Não menciona explicitamente".`,
       ],
       ['user', '{question}'],
     ]);

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, Index, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Index,
+  JoinColumn,
+} from 'typeorm';
 import { ResumeEntity } from './Resume.model';
 @Entity('document_chunks')
 export class DocumentChunkEntity {
@@ -12,12 +19,14 @@ export class DocumentChunkEntity {
   metadata: Record<string, any>;
 
   @Column({ type: 'vector', nullable: true })
-  embedding: number[]; 
+  embedding: number[];
 
   @Column()
   resumeId: string;
 
-  @ManyToOne(() => ResumeEntity, (resume) => resume.chunks, { onDelete: 'CASCADE' })
+  @ManyToOne(() => ResumeEntity, (resume) => resume.chunks, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'resumeId' })
   resume: ResumeEntity;
 }

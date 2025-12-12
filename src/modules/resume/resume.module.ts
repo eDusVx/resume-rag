@@ -9,25 +9,27 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResumeEntity } from './infra/models/Resume.model';
 import { DocumentChunkEntity } from './infra/models/DocumentChunk.model';
 import { ChatResumeUseCase } from './application/usecases/ChatResume.usecase';
+import { ListResumeQuery } from './application/queries/ListResume.query';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ResumeEntity, DocumentChunkEntity]),],
+  imports: [TypeOrmModule.forFeature([ResumeEntity, DocumentChunkEntity])],
   controllers: [ResumeController],
   providers: [
     IngestResumeUseCase,
     AnalyzeResumeUseCase,
     ChatResumeUseCase,
-    { 
-        provide: 'PdfParserService', 
-        useClass: PdfParserServiceImpl 
+    ListResumeQuery,
+    {
+      provide: 'PdfParserService',
+      useClass: PdfParserServiceImpl,
     },
-    { 
-        provide: 'GeminiService', 
-        useClass: GeminiServiceImpl 
+    {
+      provide: 'GeminiService',
+      useClass: GeminiServiceImpl,
     },
-    { 
-        provide: 'VectorStoreRepository', 
-        useClass: VectorStoreRepositoryImpl 
+    {
+      provide: 'VectorStoreRepository',
+      useClass: VectorStoreRepositoryImpl,
     },
   ],
 })
