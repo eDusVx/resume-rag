@@ -8,6 +8,7 @@ import { ResumeController } from './resume.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResumeEntity } from './infra/models/Resume.model';
 import { DocumentChunkEntity } from './infra/models/DocumentChunk.model';
+import { ChatResumeUseCase } from './application/usecases/ChatResume.usecase';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ResumeEntity, DocumentChunkEntity]),],
@@ -15,6 +16,7 @@ import { DocumentChunkEntity } from './infra/models/DocumentChunk.model';
   providers: [
     IngestResumeUseCase,
     AnalyzeResumeUseCase,
+    ChatResumeUseCase,
     { 
         provide: 'PdfParserService', 
         useClass: PdfParserServiceImpl 

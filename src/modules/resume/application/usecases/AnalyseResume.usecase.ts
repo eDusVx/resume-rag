@@ -13,7 +13,7 @@ export class AnalyzeResumeUseCase {
     const genericQuery = "Resumo profissional skills nome experiência";
     const queryVector = await this.geminiService.generateQueryEmbedding(genericQuery);
 
-    const similarDocs = await this.vectorStoreRepository.search(queryVector, 10, { resumeId });
+    const similarDocs = await this.vectorStoreRepository.search(queryVector, 10, resumeId);
 
     if (similarDocs.length === 0) {
       throw new Error("Currículo não encontrado ou ID inválido.");

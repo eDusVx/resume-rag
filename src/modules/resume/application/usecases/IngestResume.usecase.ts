@@ -15,7 +15,7 @@ export class IngestResumeUseCase {
     private readonly vectorStoreRepository: VectorStoreRepository,
   ) {}
 
-  async execute(buffer: Buffer) {
+  async execute(buffer: Buffer, fileName: string) {
     const resumeId = uuidv4();
 
     const rawTexts = await this.pdfParserService.parse(buffer);
@@ -24,7 +24,7 @@ export class IngestResumeUseCase {
 
     chunks.forEach(chunk => chunk.setResumeId(resumeId));
 
-    await this.vectorStoreRepository.save(chunks);
+    await this.vectorStoreRepository.save(chunks, fileName);
 
     return {
       message: 'Currículo processado e indexado com sucesso.',

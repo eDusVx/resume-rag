@@ -8,6 +8,7 @@ import { DocumentChunk } from 'src/modules/resume/domain/DocumentChunk';
 import { GeminiService } from '../../application/services/Gemini.service';
 import { ResumeAnalysisResult } from '../../domain/dto/ResumeAnalysis.dto';
 import { z } from 'zod';
+import { StringOutputParser } from '@langchain/core/output_parsers';
 
 @Injectable()
 export class GeminiServiceImpl implements GeminiService {
@@ -146,5 +147,33 @@ export class GeminiServiceImpl implements GeminiService {
       this.logger.error('Erro durante a análise estruturada do currículo', error);
       throw new InternalServerErrorException('Falha ao analisar o currículo com IA.');
     }
+  }
+
+  async chatWithResume(question: string, context: string): Promise<string> {
+    const prompt = ChatPromptTemplate.fromMessages([
+      [
+        'system',
+        `Você é um assistente de RH útil e preciso.
+        Você está conversando com um recrutador sobre um candidato específico.
+        
+        CONTEXTO DO CURRÍCULO (Recuperado do Banco de Dados):
+        """
+        {context}
+        """
+        
+        REGRAS:
+        1. Responda à pergunta do usuário APENAS com base no contexto acima.
+        2. Se a resposta não estiver no contexto, diga educadamente que o currículo não menciona essa informação.
+        3. Seja direto e profissional.
+        4. Cite fatos. Se perguntarem "Ele sabe React?", responda "Sim, menciona React em tal projeto" ou "Não menciona explicitamente".`
+      ],
+      ['user', '{question}'],
+    ]);
+    const chain = prompt.pipe(this.chatModel).pipe(new StringOutputParser());
+
+    return await chain.invoke({
+      question,
+      context,
+    });
   }
 }

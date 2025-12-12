@@ -5,4 +5,5 @@ export interface GeminiService {
   generateEmbeddings(texts: string[]): Promise<DocumentChunk[]>;
   generateQueryEmbedding(text: string): Promise<number[]>;
   analyzeResumeStructure(context: string): Promise<ResumeAnalysisResult>;
+  chatWithResume(question: string, context: string): Promise<string>
 }

@@ -15,11 +15,11 @@ export class VectorStoreRepositoryImpl implements VectorStoreRepository {
     private readonly resumeRepo: Repository<ResumeEntity>,
   ) {}
 
-  async save(chunks: DocumentChunk[]): Promise<void> {
+  async save(chunks: DocumentChunk[], filename?: string): Promise<void> {
     if (!chunks.length) return;
     const resumeId = chunks[0].getResumeId();
 
-    await this.resumeRepo.save({ id: resumeId });
+    await this.resumeRepo.save({ id: resumeId, filename: filename});
 
     const entities = chunks.map(c => {
       return this.chunkRepo.create({
@@ -34,7 +34,7 @@ export class VectorStoreRepositoryImpl implements VectorStoreRepository {
     await this.chunkRepo.save(entities);
   }
 
-  async search(queryVector: number[], limit: number, filter: { resumeId: string }): Promise<DocumentChunk[]> {
+  async search(queryVector: number[], limit: number, resumeId: string ): Promise<DocumentChunk[]> {
     const vectorStr = `[${queryVector.join(',')}]`;
 
     try {
@@ -47,7 +47,7 @@ export class VectorStoreRepositoryImpl implements VectorStoreRepository {
           'chunk.resumeId'
         ])
         .addSelect(`1 - (chunk.embedding <=> '${vectorStr}')`, 'score')
-        .where('chunk.resumeId = :resumeId', { resumeId: filter.resumeId })
+        .where('chunk.resumeId = :resumeId', { resumeId: resumeId })
         .orderBy('score', 'DESC')
         .limit(limit)
         .getRawMany();
