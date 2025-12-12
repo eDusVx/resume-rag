@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResumeModule } from './modules/resume/resume.module';
 import { ConfigModule } from '@nestjs/config';
+import { SharedModule } from './modules/shared/shared.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
       logging: false,
     }),
     ResumeModule,
+    SharedModule
   ],
 })
 export class AppModule {}

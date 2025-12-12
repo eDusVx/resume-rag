@@ -87,16 +87,18 @@ export class GeminiServiceImpl implements GeminiService {
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.getOrThrow<string>('GOOGLE_API_KEY');
+    const chatModel = this.configService.getOrThrow<string>('CHAT_MODEL')
+    const embeddingsModel = this.configService.getOrThrow<string>('EMBEDDING_MODEL')
 
     this.chatModel = new ChatGoogleGenerativeAI({
-      model: 'models/gemini-flash-latest',
+      model: chatModel,
       temperature: 0,
       maxRetries: 2,
       apiKey,
     });
 
     this.embeddingsModel = new GoogleGenerativeAIEmbeddings({
-      modelName: 'text-embedding-004',
+      modelName: embeddingsModel,
       taskType: TaskType.RETRIEVAL_DOCUMENT,
       apiKey,
     });

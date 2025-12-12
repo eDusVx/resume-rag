@@ -25,9 +25,9 @@ export class ResumeController {
     private readonly listResumesQuery: ListResumeQuery,
   ) {}
 
-  @Post('injest')
+  @Post('ingest')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File) {
+  async IngestResumeUseCase(@UploadedFile() file: Express.Multer.File) {
     if (!file || file.mimetype !== 'application/pdf') {
       throw new BadRequestException('Arquivo inválido. Envie um PDF.');
     }
@@ -35,7 +35,7 @@ export class ResumeController {
   }
 
   @Get('analyze')
-  async analyze(@Query('id') id: string) {
+  async AnalyseResumeUseCase(@Query('id') id: string) {
     if (!id) {
       throw new BadRequestException(
         'O ID do currículo é obrigatório (ex: ?id=uuid)',
@@ -45,14 +45,14 @@ export class ResumeController {
   }
 
   @Post(':id/chat')
-  async chat(@Param('id') id: string, @Body() requestBody: ChatResumeDto) {
+  async ChatResumeUseCase(@Param('id') id: string, @Body() requestBody: ChatResumeDto) {
     if (!id) throw new BadRequestException('ID do currículo é obrigatório.');
 
     return await this.chatResumeUseCase.execute(id, requestBody.question);
   }
 
   @Get()
-  async listAll() {
+  async ListResumesQuery() {
     return await this.listResumesQuery.execute();
   }
 }
