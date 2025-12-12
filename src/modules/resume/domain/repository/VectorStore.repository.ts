@@ -1,8 +1,9 @@
 import { DocumentChunk } from '../DocumentChunk';
 import { ResumeSummary } from '../dto/ResumeSummary.dto';
+import { Resume } from '../Resume';
 
 export interface VectorStoreRepository {
-  save(chunks: DocumentChunk[], filename?: string): Promise<void>;
+  save(resume: Resume): Promise<void>;
   search(
     queryVector: number[],
     limit: number,

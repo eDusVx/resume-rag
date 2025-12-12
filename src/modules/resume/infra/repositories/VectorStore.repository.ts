@@ -6,6 +6,7 @@ import { VectorStoreRepository } from '../../domain/repository/VectorStore.repos
 import { DocumentChunkEntity } from '../models/DocumentChunk.model';
 import { ResumeEntity } from '../models/Resume.model';
 import { ResumeSummary } from '../../domain/dto/ResumeSummary.dto';
+import { Resume } from '../../domain/Resume';
 
 @Injectable()
 export class VectorStoreRepositoryImpl implements VectorStoreRepository {
@@ -16,23 +17,28 @@ export class VectorStoreRepositoryImpl implements VectorStoreRepository {
     private readonly resumeRepo: Repository<ResumeEntity>,
   ) {}
 
-  async save(chunks: DocumentChunk[], filename?: string): Promise<void> {
-    if (!chunks.length) return;
-    const resumeId = chunks[0].getResumeId();
-
-    await this.resumeRepo.save({ id: resumeId, filename: filename });
-
-    const entities = chunks.map((c) => {
-      return this.chunkRepo.create({
-        id: c.id,
-        content: c.content,
-        metadata: c.metadata,
-        resumeId: resumeId,
-        embedding: c.embedding as any,
-      });
+  async save(resumeDomain: Resume): Promise<void> {
+    await this.resumeRepo.save({
+      id: resumeDomain.id,
+      filename: resumeDomain.filename,
+      createdAt: resumeDomain.createdAt,
     });
 
-    await this.chunkRepo.save(entities);
+    const chunksDomain = resumeDomain.getChunks();
+
+    if (chunksDomain.length > 0) {
+      const entities = chunksDomain.map((c) => {
+        return this.chunkRepo.create({
+          id: c.id,
+          content: c.content,
+          metadata: c.metadata,
+          resumeId: resumeDomain.getId(),
+          embedding: c.embedding as any,
+        });
+      });
+
+      await this.chunkRepo.save(entities);
+    }
   }
 
   async search(
@@ -45,27 +51,31 @@ export class VectorStoreRepositoryImpl implements VectorStoreRepository {
     try {
       const results = await this.chunkRepo
         .createQueryBuilder('chunk')
-        .select([
-          'chunk.id',
-          'chunk.content',
-          'chunk.metadata',
-          'chunk.resumeId',
-        ])
+        .select('chunk.id', 'id')
+        .addSelect('chunk.content', 'content')
+        .addSelect('chunk.metadata', 'metadata')
+        .addSelect('chunk.resumeId', 'resumeId')
         .addSelect(`1 - (chunk.embedding <=> '${vectorStr}')`, 'score')
         .where('chunk.resumeId = :resumeId', { resumeId: resumeId })
         .orderBy('score', 'DESC')
         .limit(limit)
-        .getRawMany();
+        .getRawMany<{
+          id: string;
+          content: string;
+          metadata: any;
+          resumeId: string;
+          score: number;
+        }>();
 
       return results.map(
         (r) =>
           new DocumentChunk(
-            r.chunk_content,
-            r.chunk_metadata,
+            r.content,
+            r.metadata,
             [],
             r.score,
-            r.chunk_id,
-            r.chunk_resumeId,
+            r.id,
+            r.resumeId,
           ),
       );
     } catch (error) {
