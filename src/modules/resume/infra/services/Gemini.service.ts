@@ -14,7 +14,7 @@ export class GeminiServiceImpl implements GeminiService {
   private readonly logger = new Logger(GeminiServiceImpl.name);
   private readonly chatModel: ChatGoogleGenerativeAI;
   private readonly embeddingsModel: GoogleGenerativeAIEmbeddings;
-  private static readonly RESUME_SCHEMA = z.object({
+  private readonly RESUME_SCHEMA = z.object({
     candidato: z.object({
       nome: z.string().describe("Nome completo do candidato. Se não achar, use 'Não identificado'"),
       email: z.string().nullable().describe("Email do candidato ou null"),
@@ -61,7 +61,7 @@ export class GeminiServiceImpl implements GeminiService {
     });
 
     this.embeddingsModel = new GoogleGenerativeAIEmbeddings({
-      modelName: 'gemini-embedding-001',
+      modelName: 'text-embedding-004',
       taskType: TaskType.RETRIEVAL_DOCUMENT,
       apiKey,
     });
@@ -111,7 +111,7 @@ export class GeminiServiceImpl implements GeminiService {
     this.logger.debug('Iniciando análise estruturada do currículo...');
     
     try {
-      const parser = StructuredOutputParser.fromZodSchema(GeminiServiceImpl.RESUME_SCHEMA);
+      const parser = StructuredOutputParser.fromZodSchema(this.RESUME_SCHEMA);
 
       const prompt = ChatPromptTemplate.fromMessages([
         [

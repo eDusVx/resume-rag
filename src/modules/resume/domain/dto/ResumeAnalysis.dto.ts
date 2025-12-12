@@ -11,17 +11,17 @@ export interface ResumeAnalysisResult {
     cidade_estado: string | null;
   };
   profissional: {
-    resumo: string; // Um parágrafo único e denso
-    tempo_experiencia_estimado: string; // Ex: "5+ anos"
+    resumo: string;
+    tempo_experiencia_estimado: string;
     cargo_atual_ou_ultimo: string;
     empresa_atual_ou_ultima: string;
   };
   skills: {
-    linguagens: string[]; // Java, TS, Go...
-    frameworks: string[]; // Spring, NestJS...
-    bancos_de_dados: string[]; // Postgres, Mongo...
-    cloud_devops: string[]; // AWS, Docker, K8s...
-    arquitetura_e_conceitos: string[]; // DDD, SOLID...
+    linguagens: string[];
+    frameworks: string[];
+    bancos_de_dados: string[];
+    cloud_devops: string[];
+    arquitetura_e_conceitos: string[];
   };
   formacao_academica: Array<{
     curso: string;
@@ -30,6 +30,6 @@ export interface ResumeAnalysisResult {
   }>;
   idiomas: Array<{
     idioma: string;
-    nivel: string; // Básico, Intermediário, Fluente
+    nivel: string;
   }>;
 }

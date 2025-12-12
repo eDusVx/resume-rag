@@ -1,51 +1,68 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { existsSync } from 'fs';
-import { DocumentChunk } from 'src/modules/resume/domain/DocumentChunk';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { DocumentChunk } from '../../domain/DocumentChunk';
 import { VectorStoreRepository } from '../../domain/repository/VectorStore.repository';
+import { DocumentChunkEntity } from '../models/DocumentChunk.model';
+import { ResumeEntity } from '../models/Resume.model';
 
 @Injectable()
-export class VectorStoreRepositoryImpl implements VectorStoreRepository, OnModuleInit {
-  private vectorDb: DocumentChunk[] = [];
-  private readonly dbPath = path.resolve(process.cwd(), 'database.json');
-
-  async onModuleInit() {
-    if (existsSync(this.dbPath)) {
-      const rawData = await fs.readFile(this.dbPath, 'utf-8');
-      this.vectorDb = JSON.parse(rawData);
-    }
-  }
+export class VectorStoreRepositoryImpl implements VectorStoreRepository {
+  constructor(
+    @InjectRepository(DocumentChunkEntity)
+    private readonly chunkRepo: Repository<DocumentChunkEntity>,
+    @InjectRepository(ResumeEntity)
+    private readonly resumeRepo: Repository<ResumeEntity>,
+  ) {}
 
   async save(chunks: DocumentChunk[]): Promise<void> {
-    this.vectorDb.push(...chunks);
-    await fs.writeFile(this.dbPath, JSON.stringify(this.vectorDb, null, 2));
-  }
+    if (!chunks.length) return;
+    const resumeId = chunks[0].getResumeId();
 
-  async search(queryVector: number[], limit: number = 4, filter?: { resumeId: string }): Promise<DocumentChunk[]> {
-    let candidates = this.vectorDb;
-    
-    if (filter?.resumeId) {
-        candidates = this.vectorDb.filter(doc => doc.metadata?.resumeId === filter.resumeId);
-    }
+    await this.resumeRepo.save({ id: resumeId });
 
-    if (candidates.length === 0) return [];
-
-    const ranking = candidates.map((doc) => {
-      const score = this.cosineSimilarity(queryVector, doc.embedding!);
-      return { ...doc, score };
+    const entities = chunks.map(c => {
+      return this.chunkRepo.create({
+        id: c.id,
+        content: c.content,
+        metadata: c.metadata,
+        resumeId: resumeId,
+        embedding: c.embedding as any 
+      });
     });
 
-    return ranking
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-      .map(r => new DocumentChunk(r.content, r.metadata, r.embedding, r.score)); 
+    await this.chunkRepo.save(entities);
   }
 
-  private cosineSimilarity(vecA: number[], vecB: number[]): number {
-    const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
-    const normA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
-    const normB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
-    return dotProduct / (normA * normB);
+  async search(queryVector: number[], limit: number, filter: { resumeId: string }): Promise<DocumentChunk[]> {
+    const vectorStr = `[${queryVector.join(',')}]`;
+
+    try {
+      const results = await this.chunkRepo
+        .createQueryBuilder('chunk')
+        .select([
+          'chunk.id',
+          'chunk.content',
+          'chunk.metadata',
+          'chunk.resumeId'
+        ])
+        .addSelect(`1 - (chunk.embedding <=> '${vectorStr}')`, 'score')
+        .where('chunk.resumeId = :resumeId', { resumeId: filter.resumeId })
+        .orderBy('score', 'DESC')
+        .limit(limit)
+        .getRawMany();
+
+      return results.map(r => new DocumentChunk(
+        r.chunk_content,
+        r.chunk_metadata,
+        [],
+        r.score,
+        r.chunk_id,
+        r.chunk_resumeId
+      ));
+
+    } catch (error) {
+      throw new InternalServerErrorException("Erro na busca vetorial");
+    }
   }
 }
