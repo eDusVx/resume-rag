@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid'; 
 import type { VectorStoreRepository } from 'src/modules/resume/domain/repository/VectorStore.repository';
 import type { GeminiService } from '../services/Gemini.service';
 import type { PdfParserService } from '../services/PdfParser.service';
+
 @Injectable()
 export class IngestResumeUseCase {
   constructor(
@@ -14,15 +16,20 @@ export class IngestResumeUseCase {
   ) {}
 
   async execute(buffer: Buffer) {
+    const resumeId = uuidv4();
+
     const rawTexts = await this.pdfParserService.parse(buffer);
 
-    const chunksWithEmbeddings = await this.geminiService.generateEmbeddings(rawTexts);
+    const chunks = await this.geminiService.generateEmbeddings(rawTexts);
 
-    await this.vectorStoreRepository.save(chunksWithEmbeddings);
+    chunks.forEach(chunk => chunk.setResumeId(resumeId));
+
+    await this.vectorStoreRepository.save(chunks);
 
     return {
       message: 'Currículo processado e indexado com sucesso.',
-      chunks: chunksWithEmbeddings.length,
+      id: resumeId,
+      chunks_count: chunks.length,
     };
   }
 }
