@@ -61,7 +61,7 @@ export class GeminiServiceImpl implements GeminiService {
     });
 
     this.embeddingsModel = new GoogleGenerativeAIEmbeddings({
-      modelName: 'text-embedding-004',
+      modelName: 'gemini-embedding-001',
       taskType: TaskType.RETRIEVAL_DOCUMENT,
       apiKey,
     });
