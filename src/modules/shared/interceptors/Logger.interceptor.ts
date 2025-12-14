@@ -16,7 +16,12 @@ import { Request } from 'express';
 export class LoggerInterceptor implements NestInterceptor {
   private logger = new Logger('UseCaseLogger');
   private readonly SENSITIVE_KEYS = [
-    'senha', 'password', 'token', 'authorization', 'secret', 'cvv'
+    'senha',
+    'password',
+    'token',
+    'authorization',
+    'secret',
+    'cvv',
   ];
 
   constructor(
@@ -29,59 +34,73 @@ export class LoggerInterceptor implements NestInterceptor {
     const request = ctx.getRequest<Request>();
     const handlerName = context.getHandler().name;
     if (['Hc', 'Liveness'].includes(handlerName)) {
-        return next.handle();
+      return next.handle();
     }
     const process = handlerName;
 
     let initialProps = this.extractAllProps(request);
-    const initialPropsStr = JSON.stringify(this.sanitizeRecursive(initialProps));
+    const initialPropsStr = JSON.stringify(
+      this.sanitizeRecursive(initialProps),
+    );
 
-    this.logger.debug(`[INICIO] ${handlerName} | Dados Iniciais: ${initialPropsStr}`);
-    
-    this.logService.log({
-      process,
-      log: `Processo iniciado`,
-      props: initialPropsStr,
-    }).catch(() => {}); 
+    this.logger.debug(`[INICIO] ${handlerName} | ${initialPropsStr}`);
+
+    this.logService
+      .log({
+        process,
+        log: `Processo iniciado`,
+        props: initialPropsStr,
+      })
+      .catch(() => {});
 
     const startTime = Date.now();
 
     return next.handle().pipe(
       tap((response) => {
         const duration = Date.now() - startTime;
-        
+
         const finalProps = this.extractAllProps(request);
-        const finalPropsStr = JSON.stringify(this.sanitizeRecursive(finalProps));
+        const finalPropsStr = JSON.stringify(
+          this.sanitizeRecursive(finalProps),
+        );
 
         const resultSanitized = this.sanitizeResponse(response);
 
         this.logger.debug(
-          `[SUCESSO] ${handlerName} (${duration}ms) | Inputs Finais: ${finalPropsStr}`,
+          `[SUCESSO] ${handlerName} (${duration}ms) | ${JSON.stringify(resultSanitized)}`,
         );
-        
-        this.logService.success({
-          process,
-          log: `Finalizado com sucesso em ${duration}ms`,
-          props: finalPropsStr,
-          result: JSON.stringify(resultSanitized),
-        }).catch(() => {});
+
+        this.logService
+          .success({
+            process,
+            log: `Finalizado com sucesso em ${duration}ms`,
+            props: finalPropsStr,
+            result: JSON.stringify(resultSanitized),
+          })
+          .catch(() => {});
       }),
       catchError((error) => {
         const duration = Date.now() - startTime;
-        
+
         const finalProps = this.extractAllProps(request);
-        const finalPropsStr = JSON.stringify(this.sanitizeRecursive(finalProps));
+        const finalPropsStr = JSON.stringify(
+          this.sanitizeRecursive(finalProps),
+        );
 
         const { message, details } = this.extractErrorDetails(error);
 
-        this.logger.error(`[ERRO] ${handlerName} (${duration}ms) | Msg: ${message}`);
+        this.logger.error(
+          `[ERRO] ${handlerName} (${duration}ms) | Msg: ${message}`,
+        );
 
-        this.logService.error({
-          process,
-          log: `Falha após ${duration}ms: ${message}`,
-          props: finalPropsStr,
-          result: JSON.stringify(details),
-        }).catch(() => {});
+        this.logService
+          .error({
+            process,
+            log: `Falha após ${duration}ms: ${message}`,
+            props: finalPropsStr,
+            result: JSON.stringify(details),
+          })
+          .catch(() => {});
 
         throw error;
       }),
@@ -106,7 +125,9 @@ export class LoggerInterceptor implements NestInterceptor {
       } else {
         props.uploadedFiles = {};
         for (const key in req.files) {
-          props.uploadedFiles[key] = req.files[key].map((f: any) => this.formatFileMeta(f));
+          props.uploadedFiles[key] = req.files[key].map((f: any) =>
+            this.formatFileMeta(f),
+          );
         }
       }
     }
@@ -126,12 +147,12 @@ export class LoggerInterceptor implements NestInterceptor {
   private sanitizeRecursive(obj: any): any {
     if (!obj) return obj;
     if (Buffer.isBuffer(obj)) return '[Binary Data]';
-    if (Array.isArray(obj)) return obj.map(v => this.sanitizeRecursive(v));
+    if (Array.isArray(obj)) return obj.map((v) => this.sanitizeRecursive(v));
     if (typeof obj === 'object') {
       const cleanObj: any = {};
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          if (this.SENSITIVE_KEYS.some(s => key.toLowerCase().includes(s))) {
+          if (this.SENSITIVE_KEYS.some((s) => key.toLowerCase().includes(s))) {
             cleanObj[key] = '[REDACTED]';
           } else {
             cleanObj[key] = this.sanitizeRecursive(obj[key]);
@@ -147,7 +168,7 @@ export class LoggerInterceptor implements NestInterceptor {
     if (Array.isArray(response) && response.length > 20) {
       return {
         _summary: `Array com ${response.length} itens (truncado)`,
-        sample: response.slice(0, 3).map(i => this.sanitizeRecursive(i))
+        sample: response.slice(0, 3).map((i) => this.sanitizeRecursive(i)),
       };
     }
     return this.sanitizeRecursive(response);

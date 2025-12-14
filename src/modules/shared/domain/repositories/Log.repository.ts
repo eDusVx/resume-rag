@@ -10,7 +10,7 @@ export interface LogProps {
   log: any;
   props: any;
   result?: string;
-  type?: LOG_TYPE; 
+  type?: LOG_TYPE;
 }
 
 export interface LogRepository {

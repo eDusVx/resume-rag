@@ -15,7 +15,7 @@ import { SharedModule } from './modules/shared/shared.module';
       logging: false,
     }),
     ResumeModule,
-    SharedModule
+    SharedModule,
   ],
 })
 export class AppModule {}
